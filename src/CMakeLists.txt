@@ -4,14 +4,14 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*\\.m\\.cpp$")
 list(FILTER SRC_FILES EXCLUDE REGEX ".*\\.t\\.cpp$")
 
 # === Build Source files as libraries
-add_library(examplelib STATIC ${SRC_FILES})
-target_include_directories(examplelib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(qoilib STATIC ${SRC_FILES})
+target_include_directories(qoilib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # === Main App ===
-add_executable(example.tsk
-example.m.cpp
+add_executable(qoi.tsk
+qoi.m.cpp
 )
-target_link_libraries(example.tsk PRIVATE examplelib)
+target_link_libraries(qoi.tsk PRIVATE qoilib)
 
 # === GoogleTest via FetchContent ===
 include(FetchContent)
@@ -33,6 +33,6 @@ foreach(TEST_SRC ${TEST_SOURCES})
     get_filename_component(FILE_NAME ${TEST_SRC} NAME)
     string(REGEX REPLACE "\\.cpp$" "" TEST_NAME ${FILE_NAME}) # e.g., math.t.cpp -> math.t 
     add_executable(${TEST_NAME} ${TEST_SRC})
-    target_link_libraries(${TEST_NAME} PRIVATE examplelib gtest_main)
+    target_link_libraries(${TEST_NAME} PRIVATE qoilib gtest_main)
     gtest_discover_tests(${TEST_NAME})
 endforeach()

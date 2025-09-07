@@ -3,3 +3,10 @@ build/
 
 # vscode
 .vscode/
+
+# utility files
+*.ppm
+*.qoi
+
+# clangd
+.cache/
