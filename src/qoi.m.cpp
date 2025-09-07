@@ -43,10 +43,10 @@ struct QOIHeader {
 };
 
 struct RGBA {
-    std::uint8_t d_red;
-    std::uint8_t d_green;
-    std::uint8_t d_blue;
-    std::uint8_t d_alpha;
+    std::uint8_t d_red{0};
+    std::uint8_t d_green{0};
+    std::uint8_t d_blue{0};
+    std::uint8_t d_alpha{0};
 
     bool operator==(const RGBA &rhs) const {
         return (d_red == rhs.d_red) && (d_green == rhs.d_green) && (d_blue == rhs.d_blue) &&
@@ -106,31 +106,53 @@ constexpr PPMOutput readPPMFile(const std::filesystem::path &filename) {
     }
     std::cout << "Magic Tag: " << tag << std::endl;
 
-    std::uint32_t width, height;
-    file >> width >> height;
-    std::cout << "Width: " << width << ", and Height: " << height << std::endl;
+    // Skip comment line
+    char peekChar = file.peek();
+    while (std::isspace(peekChar)) {
+        file.get();
+        peekChar = file.peek();
+    }
 
-    std::uint32_t maxPixelValue;
-    file >> maxPixelValue;
+    while (peekChar == '#') {
+        file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        peekChar = file.peek();
+
+        while (std::isspace(peekChar)) {
+            file.get();
+            peekChar = file.peek();
+        }
+    }
+
+    std::uint32_t width, height, maxPixelValue;
+    file >> width >> height >> maxPixelValue;
+    std::cout << "PPM Width: " << width << ", Height: " << height
+              << ", and max pixel value: " << maxPixelValue << std::endl;
+
     if (maxPixelValue != PPM_MAX_PIXEL_VALUE) {
         throw std::runtime_error("Only 8-bit PPM files (max color 255) are supported.");
     }
 
-    file.get();
+    file.ignore();
+
+    std::vector<Byte> pixelBuffer(width * height * 3);
+
+    file.read(reinterpret_cast<char *>(pixelBuffer.data()), pixelBuffer.size());
+    if (!file) {
+        std::cerr << "Unable to read pixel data from PPM file" << std::endl;
+        throw std::runtime_error("Unable to read pixel data from PPM file");
+    }
 
     std::vector<RGBA> pixels(width * height);
-    for (int iter = 0; iter < width * height; ++iter) {
-        char rgb[3];
-        file.read(rgb, 3);
-        pixels[iter] = {.d_red = static_cast<Byte>(rgb[0]),
-                        .d_green = static_cast<Byte>(rgb[1]),
-                        .d_blue = static_cast<Byte>(rgb[2]),
+    for (int iter = 0; iter < pixels.size(); ++iter) {
+        pixels[iter] = {.d_red = pixelBuffer[iter * 3],
+                        .d_green = pixelBuffer[iter * 3 + 1],
+                        .d_blue = pixelBuffer[iter * 3 + 2],
                         .d_alpha = 255};
     }
 
     return {.d_width = width,
             .d_height = height,
-            .d_channels = 4,
+            .d_channels = 3,
             .d_colorspace = 0,
             .d_pixels = pixels};
 }
@@ -232,11 +254,12 @@ DecodedOutput decodeQOI(const std::vector<Byte> &buffer) {
     if (!hasValidEndMarker(buffer)) {
         throw std::runtime_error("QOI file is corrupted or incomplete");
     }
+
     std::vector<RGBA> pixels(64);
     RGBA prevPixel{.d_red = 0, .d_green = 0, .d_blue = 0, .d_alpha = 255};
 
     std::vector<RGBA> output;
-    output.reserve(400);
+    output.reserve(500000);
 
     while (offset < buffer.size() - 8) {
         RGBA currPixel;
@@ -246,7 +269,6 @@ DecodedOutput decodeQOI(const std::vector<Byte> &buffer) {
             currPixel.d_green = buffer[offset++];
             currPixel.d_blue = buffer[offset++];
             currPixel.d_alpha = buffer[offset++];
-            pixels[hashIndex(currPixel)] = currPixel;
             output.emplace_back(currPixel);
         } else if (buffer[offset] == QOI_OP_RGB) {
             ++offset;
@@ -254,7 +276,6 @@ DecodedOutput decodeQOI(const std::vector<Byte> &buffer) {
             currPixel.d_green = buffer[offset++];
             currPixel.d_blue = buffer[offset++];
             currPixel.d_alpha = prevPixel.d_alpha;
-            pixels[hashIndex(currPixel)] = currPixel;
             output.emplace_back(currPixel);
         } else if ((buffer[offset] >> 6) == (QOI_OP_INDEX >> 6)) {
             auto index = static_cast<std::uint32_t>(buffer[offset]);
@@ -296,6 +317,8 @@ DecodedOutput decodeQOI(const std::vector<Byte> &buffer) {
             }
             ++offset;
         }
+
+        pixels[hashIndex(currPixel)] = currPixel;
         prevPixel = currPixel;
     }
 
@@ -417,10 +440,12 @@ int main(int argc, char *argv[]) {
     try {
         if (op == DECODE_OP) {
             const std::vector<Byte> buffer = readQOIFile(inputFile);
+            std::cout << "QOI size: " << buffer.size() << std::endl;
             auto outBuffer = decodeQOI(buffer);
             writeToPPMFile("dummy.ppm", outBuffer);
         } else if (op == ENCODE_OP) {
             const PPMOutput ppmData = readPPMFile(inputFile);
+            std::cout << "PPM size: " << ppmData.d_pixels.size() << std::endl;
             const std::vector<Byte> encodedBytes = encodeToQOI(ppmData);
             writeToQOIFile("dummy.qoi", encodedBytes);
         } else {
