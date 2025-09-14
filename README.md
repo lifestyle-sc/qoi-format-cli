@@ -1,10 +1,11 @@
-# Example CPP Project
+# **QOI/PPM Image Converter**
 
-* This serves as a template for creating cpp projects
+This command-line utility provides the functionality to encode **PPM** (Portable Pixmap) images to the **QOI** (Quite OK Image) format and to decode QOI images back to PPM. This tool is built using C++ and provides a straightforward way to handle lossless image conversion for these two formats. It uses the specification provided by the official [specification here](https://qoiformat.org/qoi-specification.pdf)
 
-## Inside The Project
+-----
 
-* Root `CMakeLists.txt`: This setups up the project. it includes specifing the minimum `cmake` version, the name of the project and the `C++` version.
+## **How to Build**
+
 * `build.sh`: This is an helper script for managing the `cmake` build system. It allows us to easily build and run tests. When you first clone the project, enable executable permission on the file by running the command below;
 
     ```sh
@@ -37,16 +38,43 @@
 
   * **NB**: By default the build mode is `debug` and action is `build`, this means if you specify no options as below, it would build your project in debug mode.
 
-    ```sh
-    ./build.sh
-    ```
+-----
 
-* `src/CMakeLists.txt`: This setups the libraries, the executable, googletest and the tests. Few things to note, the source files are built as a static library and linked against the main file and the test files, also each tests are built as a separate executable which means you can run each test individually.
-* `example.m.cpp`: This is the main file, it serves as the entry point to the project. Ensure you keep the naming convention of this file as `*.m.cpp` as this is used by the build system to identify the main file.
-* `ex.h`: This is an example header file.
-* `ex.cpp`: This is an example source file. These are built as a `static` library
-* `example.t.cpp`: This is an example test file. It uses `googletest`. Ensure you keep the naming convention of this kind of files as `*.t.cpp` as this used by the build system to identify that this is a test file.
+## **How to Use**
 
-## TODO
+The program is executed from the command line and takes two arguments: an operation and the input filename.
 
-* Include a code formatter to ensure each file is properly formatted.
+### **Encode Operation**
+
+To convert a **PPM** file to a **QOI** file, use the `encode` operation. The output file will be named `dummy.qoi` and will be saved in the same directory.
+
+**Command**:
+
+```sh
+./build/debug/src/qoi.tsk encode <input_file.ppm>
+```
+
+### **Decode Operation**
+
+To convert a **QOI** file to a **PPM** file, use the `decode` operation. The output file will be named `dummy.ppm` and will be saved in the same directory.
+
+**Command**:
+
+```sh
+./build/debug/src/qoi.tsk decode <input_file.qoi>
+```
+
+-----
+
+## **Supported Formats**
+
+* **PPM**: Only the **P6 (binary)** format with an 8-bit color depth (max pixel value of 255) is supported.
+* **QOI**: The tool handles QOI files with both 3 (RGB) and 4 (RGBA) channels and any colorspace.
+
+## **Limitations**
+
+* The tool only works with PPM files in the P6 binary format.
+* The maximum supported file size is **1 GB**.
+* The output filenames are hardcoded to `dummy.qoi` and `dummy.ppm`.
+
+-----
