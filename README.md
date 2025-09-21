@@ -46,22 +46,22 @@ The program is executed from the command line and takes two arguments: an operat
 
 ### **Encode Operation**
 
-To convert a **PPM** file to a **QOI** file, use the `encode` operation. The output file will be named `dummy.qoi` and will be saved in the same directory.
+To convert a **PPM** file to a **QOI** file, use the `encode` operation.
 
 **Command**:
 
 ```sh
-./build/debug/src/qoi.tsk encode <input_file.ppm>
+./build/debug/src/qoi.tsk encode <input_file> <output_file>
 ```
 
 ### **Decode Operation**
 
-To convert a **QOI** file to a **PPM** file, use the `decode` operation. The output file will be named `dummy.ppm` and will be saved in the same directory.
+To convert a **QOI** file to a **PPM** file, use the `decode` operation.
 
 **Command**:
 
 ```sh
-./build/debug/src/qoi.tsk decode <input_file.qoi>
+./build/debug/src/qoi.tsk decode <input_file> <output_file>
 ```
 
 -----
@@ -75,6 +75,5 @@ To convert a **QOI** file to a **PPM** file, use the `decode` operation. The out
 
 * The tool only works with PPM files in the P6 binary format.
 * The maximum supported file size is **1 GB**.
-* The output filenames are hardcoded to `dummy.qoi` and `dummy.ppm`.
 
 -----
