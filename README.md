@@ -1,6 +1,6 @@
-# **QOI/PPM Image Converter**
+# **QOI Image Converter**
 
-This command-line utility provides the functionality to encode **PPM** (Portable Pixmap) images to the **QOI** (Quite OK Image) format and to decode QOI images back to PPM. This tool is built using C++ and provides a straightforward way to handle lossless image conversion for these two formats. It uses the specification provided by the official [specification here](https://qoiformat.org/qoi-specification.pdf)
+This command-line utility provides the functionality to encode **PPM** (Portable Pixmap) or **PNG** images to the **QOI** (Quite OK Image) format and to decode QOI images back to **PPM** or **PNG**. This tool is built using C++ and provides a straightforward way to handle lossless image conversion for these two formats. It uses the specification provided by the official [specification here](https://qoiformat.org/qoi-specification.pdf)
 
 -----
 
@@ -90,7 +90,7 @@ To convert a **QOI** file to a **PNG** file, use the the `decode` operation belo
 
 ## **Limitations**
 
-* The tool only works with PPM files in the P6 binary format.
+* The tool only works with PPM files in the P6 binary format or PPM files.
 * The maximum supported file size is **1 GB**.
 
 -----
