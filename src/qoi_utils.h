@@ -3,12 +3,17 @@
 #include <qoi_constants.h>
 #include <qoi_types.h>
 
+#include <stb_image.h>
+#include <stb_image_write.h>
+
 #include <algorithm>
 #include <array>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace qoi {
@@ -73,16 +78,49 @@ inline auto writeU32(std::uint32_t value, std::vector<Byte> &encodedBuffer) -> v
     encodedBuffer.emplace_back(value & 0xFF);
 }
 
-inline auto convertBytesToPixel(const std::vector<Byte> &bytes, std::vector<Pixel> &pixels)
-    -> void {
-    for (int iter = 0; iter < pixels.size(); ++iter) {
-        if ((iter * 3 + 2) >= bytes.size()) {
-            throw std::runtime_error("The data is corrupted or incomplete");
-        }
-        pixels[iter] = {.d_red = bytes[iter * 3],
-                        .d_green = bytes[iter * 3 + 1],
-                        .d_blue = bytes[iter * 3 + 2],
+inline auto convertBytesToPixel(const std::vector<Byte> &bytes, std::vector<Pixel> &pixels,
+                                Channel channels) -> void {
+    const auto pixelChannels = static_cast<std::size_t>(channels);
+    if (pixelChannels < 3) {
+        throw std::runtime_error("unsupported channel size, support only 3 or 4 channels!");
+    }
+
+    if (bytes.size() % pixelChannels != 0) {
+        throw std::runtime_error("The data is corrupted or incomplete");
+    }
+
+    const auto numPixels = bytes.size() / pixelChannels;
+    pixels.resize(numPixels);
+
+    for (auto iter = 0; iter < numPixels; ++iter) {
+        const auto byteIndex = static_cast<std::size_t>(iter) * pixelChannels;
+        pixels[iter] = {.d_red = bytes[byteIndex],
+                        .d_green = bytes[byteIndex + 1],
+                        .d_blue = bytes[byteIndex + 2],
                         .d_alpha = 255};
+
+        if (pixelChannels == 4) {
+            pixels[iter].d_alpha = bytes[byteIndex + 3];
+        }
+    }
+}
+
+inline auto convertPixelsToBytes(const std::vector<Pixel> &pixels, std::vector<Byte> &bytes,
+                                 Channel channels) -> void {
+    if (channels < 3) {
+        throw std::runtime_error("unsupported channel size, support only 3 or 4 channels!");
+    }
+
+    bytes.reserve(pixels.size() * channels);
+
+    for (auto &pixel : pixels) {
+        bytes.emplace_back(pixel.d_red);
+        bytes.emplace_back(pixel.d_green);
+        bytes.emplace_back(pixel.d_blue);
+
+        if (channels == 4) {
+            bytes.emplace_back(pixel.d_alpha);
+        }
     }
 }
 
@@ -202,8 +240,38 @@ constexpr FileOutput readPPMFile(const std::filesystem::path &filename) {
         throw std::runtime_error("Unable to read pixel data from PPM file");
     }
 
-    return {
-        .d_width = width, .d_height = height, .d_channels = 3, .d_colorspace = 0, .d_bytes = bytes};
+    return {.d_width = width,
+            .d_height = height,
+            .d_channels = 3,
+            .d_colorspace = 0,
+            .d_bytes = std::move(bytes)};
+}
+
+inline FileOutput readPNGFile(const std::filesystem::path &filename) {
+    int width;
+    int height;
+    int channels;
+
+    unsigned char *data = stbi_load(filename.c_str(), &width, &height, &channels, 0);
+    if (!data) {
+        throw std::runtime_error("Failed to load file: " + filename.string());
+    }
+
+    auto imgSize = static_cast<std::size_t>(width) * static_cast<std::size_t>(height) *
+                   static_cast<std::size_t>(channels);
+    std::vector<Byte> bytes;
+    bytes.assign(data, data + imgSize);
+
+    stbi_image_free(data);
+
+    std::cout << "width=" << width << ", height=" << height << ", channels=" << channels
+              << std::endl;
+
+    return {.d_width = static_cast<Width>(width),
+            .d_height = static_cast<Height>(height),
+            .d_channels = static_cast<Channel>(channels),
+            .d_colorspace = 0,
+            .d_bytes = std::move(bytes)};
 }
 
 inline auto writeToPPMFile(const std::filesystem::path &filename, const DecodedOutput &decodedData)
@@ -222,9 +290,17 @@ inline auto writeToQOIFile(const std::filesystem::path &filename, const EncodedO
     -> void {
     std::ofstream out(filename, std::ios::binary);
 
-    for (const auto &byte : encodedData.d_bytes) {
-        out.put(byte);
-    }
+    out.write(reinterpret_cast<const char *>(encodedData.d_bytes.data()),
+              encodedData.d_bytes.size());
+}
+
+inline auto writeToPNGFile(const std::filesystem::path &filename,
+                           const DecodedOutput &decodedOutput) -> void {
+    std::vector<Byte> bytes;
+    convertPixelsToBytes(decodedOutput.d_pixels, bytes, decodedOutput.d_channels);
+    stbi_write_png(filename.c_str(), decodedOutput.d_width, decodedOutput.d_height,
+                   decodedOutput.d_channels, bytes.data(),
+                   decodedOutput.d_width * decodedOutput.d_channels);
 }
 
 } // namespace qoi

@@ -7,6 +7,7 @@ build/
 # utility files
 *.ppm
 *.qoi
+*.png
 
 # clangd
 .cache/

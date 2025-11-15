@@ -14,9 +14,14 @@ Encoder::Encoder()
 
 // MANIPULATORS
 EncodedOutput Encoder::encodeToQOI(const FileOutput &fileData) {
-    Pixels pixels(fileData.d_height * fileData.d_width);
+    const auto pixelChannels = static_cast<std::size_t>(fileData.d_channels);
+    if (pixelChannels < 3) {
+        throw std::runtime_error("unsupported channel size, support only 3 or 4 channels!");
+    }
 
-    convertBytesToPixel(fileData.d_bytes, pixels);
+    if (fileData.d_bytes.size() % pixelChannels != 0) {
+        throw std::runtime_error("The data is corrupted or incomplete");
+    }
 
     // write header
     d_encodedBuffer.insert(d_encodedBuffer.cend(), QOI_MAGIC_TAG.cbegin(), QOI_MAGIC_TAG.cend());
@@ -34,10 +39,19 @@ EncodedOutput Encoder::encodeToQOI(const FileOutput &fileData) {
     d_encodedBuffer.emplace_back(fileData.d_colorspace);
 
     // write pixels data
-    for (auto iter = pixels.begin(); iter != pixels.end(); iter++) {
-        if (*iter == d_prevPixel) {
+    const auto &bytes = fileData.d_bytes;
+    for (auto iter = 0; iter != bytes.size(); iter += pixelChannels) {
+        auto currPixel = Pixel{.d_red = bytes[iter],
+                               .d_green = bytes[iter + 1],
+                               .d_blue = bytes[iter + 2],
+                               .d_alpha = 255};
+        if (pixelChannels == 4) {
+            currPixel.d_alpha = bytes[iter + 3];
+        }
+
+        if (currPixel == d_prevPixel) {
             ++d_run;
-            if (d_run == 62 || iter == pixels.end() - 1) {
+            if (d_run == 62) {
                 d_encodedBuffer.emplace_back(QOI_OP_RUN | d_run - 1);
                 d_run = 0;
             }
@@ -50,13 +64,13 @@ EncodedOutput Encoder::encodeToQOI(const FileOutput &fileData) {
             d_run = 0;
         }
 
-        int index = hashIndex(*iter);
-        if (d_pixelCache[index] == *iter) {
+        int index = hashIndex(currPixel);
+        if (d_pixelCache[index] == currPixel) {
             d_encodedBuffer.emplace_back(QOI_OP_INDEX | index);
-        } else {
-            int dr = iter->d_red - d_prevPixel.d_red;
-            int dg = iter->d_green - d_prevPixel.d_green;
-            int db = iter->d_blue - d_prevPixel.d_blue;
+        } else if (currPixel.d_alpha == d_prevPixel.d_alpha) {
+            int dr = currPixel.d_red - d_prevPixel.d_red;
+            int dg = currPixel.d_green - d_prevPixel.d_green;
+            int db = currPixel.d_blue - d_prevPixel.d_blue;
 
             int dr_dg = dr - dg;
             int db_dg = db - dg;
@@ -68,22 +82,27 @@ EncodedOutput Encoder::encodeToQOI(const FileOutput &fileData) {
                        (db_dg >= -8 && db_dg <= 7)) {
                 d_encodedBuffer.emplace_back(QOI_OP_LUMA | (dg + 32));
                 d_encodedBuffer.emplace_back(((dr_dg + 8) << 4) | (db_dg + 8));
-            } else if (iter->d_alpha == d_prevPixel.d_alpha) {
-                d_encodedBuffer.emplace_back(QOI_OP_RGB);
-                d_encodedBuffer.emplace_back(iter->d_red);
-                d_encodedBuffer.emplace_back(iter->d_green);
-                d_encodedBuffer.emplace_back(iter->d_blue);
             } else {
-                d_encodedBuffer.emplace_back(QOI_OP_RGBA);
-                d_encodedBuffer.emplace_back(iter->d_red);
-                d_encodedBuffer.emplace_back(iter->d_green);
-                d_encodedBuffer.emplace_back(iter->d_blue);
-                d_encodedBuffer.emplace_back(iter->d_alpha);
+                d_encodedBuffer.emplace_back(QOI_OP_RGB);
+                d_encodedBuffer.emplace_back(currPixel.d_red);
+                d_encodedBuffer.emplace_back(currPixel.d_green);
+                d_encodedBuffer.emplace_back(currPixel.d_blue);
             }
+        } else {
+            d_encodedBuffer.emplace_back(QOI_OP_RGBA);
+            d_encodedBuffer.emplace_back(currPixel.d_red);
+            d_encodedBuffer.emplace_back(currPixel.d_green);
+            d_encodedBuffer.emplace_back(currPixel.d_blue);
+            d_encodedBuffer.emplace_back(currPixel.d_alpha);
         }
 
-        d_pixelCache[index] = *iter;
-        d_prevPixel = *iter;
+        d_pixelCache[index] = currPixel;
+        d_prevPixel = currPixel;
+    }
+
+    if (d_run > 0) {
+        d_encodedBuffer.emplace_back(QOI_OP_RUN | d_run - 1);
+        d_run = 0;
     }
 
     // write end marker

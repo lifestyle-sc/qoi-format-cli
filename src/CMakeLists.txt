@@ -6,6 +6,7 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*\\.t\\.cpp$")
 # === Build Source files as libraries
 add_library(qoilib STATIC ${SRC_FILES})
 target_include_directories(qoilib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(qoilib PUBLIC stblib easyargslib)
 
 # === Main App ===
 add_executable(qoi.tsk
@@ -31,7 +32,7 @@ include(GoogleTest)
 
 foreach(TEST_SRC ${TEST_SOURCES})
     get_filename_component(FILE_NAME ${TEST_SRC} NAME)
-    string(REGEX REPLACE "\\.cpp$" "" TEST_NAME ${FILE_NAME}) # e.g., math.t.cpp -> math.t 
+    string(REGEX REPLACE "\\.cpp$" "" TEST_NAME ${FILE_NAME}) # e.g., math.t.cpp -> math.t
     add_executable(${TEST_NAME} ${TEST_SRC})
     target_link_libraries(${TEST_NAME} PRIVATE qoilib gtest_main)
     gtest_discover_tests(${TEST_NAME})
