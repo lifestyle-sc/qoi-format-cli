@@ -46,17 +46,25 @@ The program is executed from the command line and takes two arguments: an operat
 
 ### **Encode Operation**
 
-To convert a **PPM** file to a **QOI** file, use the `encode` operation.
+To convert a **PPM** file to a **QOI** file, use the `encode` operation below:
 
 **Command**:
 
 ```sh
-./build/debug/src/qoi.tsk encode <input_file> <output_file>
+./build/debug/src/qoi.tsk encode <input_file> <output_file> -f ppm
+```
+
+To convert a **PNG** file to a **QOI** file, use the `encode` operation below:
+
+**Command**:
+
+```sh
+./build/debug/src/qoi.tsk encode <input_file> <output_file> -f png
 ```
 
 ### **Decode Operation**
 
-To convert a **QOI** file to a **PPM** file, use the `decode` operation.
+To convert a **QOI** file to a **PPM** file, use the `decode` operation below:
 
 **Command**:
 
@@ -64,11 +72,20 @@ To convert a **QOI** file to a **PPM** file, use the `decode` operation.
 ./build/debug/src/qoi.tsk decode <input_file> <output_file>
 ```
 
+To convert a **QOI** file to a **PNG** file, use the the `decode` operation below:
+
+**Command**:
+
+```sh
+./build/debug/src/qoi.tsk decode <input_file> <output_file> -f pmm
+```
+
 -----
 
 ## **Supported Formats**
 
 * **PPM**: Only the **P6 (binary)** format with an 8-bit color depth (max pixel value of 255) is supported.
+* **PNG**: Supports any kind of png file. It uses the stbi library to handle the loading of the file.
 * **QOI**: The tool handles QOI files with both 3 (RGB) and 4 (RGBA) channels and any colorspace.
 
 ## **Limitations**

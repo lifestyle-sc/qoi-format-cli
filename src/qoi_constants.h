@@ -28,4 +28,6 @@ constexpr std::uint32_t PPM_MAX_PIXEL_VALUE = 255;
 // CLI INFO
 constexpr std::string DECODE_OP = "decode";
 constexpr std::string ENCODE_OP = "encode";
+constexpr std::string PPM_FILE_FORMAT = "ppm";
+constexpr std::string PNG_FILE_FORMAT = "png";
 } // namespace qoi
