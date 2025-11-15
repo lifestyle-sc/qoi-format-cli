@@ -49,7 +49,7 @@ struct DecodedOutput {
     Height d_height;
     Channel d_channels;
     ColorSpace d_colorspace;
-    std::vector<Pixel> d_pixels;
+    std::vector<Byte> d_bytes;
 };
 
 } // namespace qoi

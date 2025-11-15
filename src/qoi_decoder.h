@@ -15,21 +15,23 @@ class Decoder {
     // DATA
     Pixel d_prevPixel;
     Pixels d_pixelCache;
-    Pixels d_outputBuffer;
+    Bytes d_outputBuffer;
     Offset d_offset;
 
     // PRIVATE MANIPULATORS
-    void processRGBAOp(const Bytes &bytes, Pixel &pixel);
+    void processRGBAOp(const Bytes &bytes, Pixel &pixel, Channel channel);
 
-    void processRGBOp(const Bytes &bytes, Pixel &pixel);
+    void processRGBOp(const Bytes &bytes, Pixel &pixel, Channel channel);
 
-    void processDiffOp(const Bytes &bytes, Pixel &pixel);
+    void processDiffOp(const Bytes &bytes, Pixel &pixel, Channel channel);
 
-    void processLumaOp(const Bytes &bytes, Pixel &pixel);
+    void processLumaOp(const Bytes &bytes, Pixel &pixel, Channel channel);
 
-    void processIndexOp(const Bytes &bytes, Pixel &pixel);
+    void processIndexOp(const Bytes &bytes, Pixel &pixel, Channel channel);
 
-    void processRunOp(const Bytes &bytes, Pixel &pixel);
+    void processRunOp(const Bytes &bytes, Pixel &pixel, Channel channel);
+
+    void produceToOutBuffer(const Pixel &pixel, Channel channel);
 
   public:
     // CREATOR
