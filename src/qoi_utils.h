@@ -21,6 +21,8 @@ inline auto byte_ptr(char *p) -> Byte * { return reinterpret_cast<Byte *>(p); }
 
 inline auto char_ptr(Byte *p) -> char * { return reinterpret_cast<char *>(p); }
 
+inline auto cchar_ptr(const Byte *p) -> const char * { return reinterpret_cast<const char *>(p); }
+
 inline auto hashIndex(const Pixel &pixel) -> Hash {
     return ((pixel.d_red * 3) + (pixel.d_green * 5) + (pixel.d_blue * 7) + (pixel.d_alpha * 11)) %
            64;
@@ -264,9 +266,6 @@ inline FileOutput readPNGFile(const std::filesystem::path &filename) {
 
     stbi_image_free(data);
 
-    std::cout << "width=" << width << ", height=" << height << ", channels=" << channels
-              << std::endl;
-
     return {.d_width = static_cast<Width>(width),
             .d_height = static_cast<Height>(height),
             .d_channels = static_cast<Channel>(channels),
@@ -279,27 +278,21 @@ inline auto writeToPPMFile(const std::filesystem::path &filename, const DecodedO
     std::ofstream out(filename, std::ios::binary);
     out << "P6\n" << decodedData.d_width << " " << decodedData.d_height << "\n255\n";
 
-    for (const auto &px : decodedData.d_pixels) {
-        out.put(px.d_red);
-        out.put(px.d_green);
-        out.put(px.d_blue);
-    }
+    out.write(cchar_ptr(decodedData.d_bytes.data()), decodedData.d_bytes.size());
 }
 
 inline auto writeToQOIFile(const std::filesystem::path &filename, const EncodedOutput &encodedData)
     -> void {
     std::ofstream out(filename, std::ios::binary);
 
-    out.write(reinterpret_cast<const char *>(encodedData.d_bytes.data()),
-              encodedData.d_bytes.size());
+    out.write(cchar_ptr(encodedData.d_bytes.data()), encodedData.d_bytes.size());
 }
 
 inline auto writeToPNGFile(const std::filesystem::path &filename,
                            const DecodedOutput &decodedOutput) -> void {
     std::vector<Byte> bytes;
-    convertPixelsToBytes(decodedOutput.d_pixels, bytes, decodedOutput.d_channels);
     stbi_write_png(filename.c_str(), decodedOutput.d_width, decodedOutput.d_height,
-                   decodedOutput.d_channels, bytes.data(),
+                   decodedOutput.d_channels, decodedOutput.d_bytes.data(),
                    decodedOutput.d_width * decodedOutput.d_channels);
 }
 
